@@ -110,11 +110,13 @@ public class LoginController {
         String tenDangNhap = txtTenDangNhap.getText().trim();
         String matKhau = txtMatKhau.getText();
 
-        if (tenDangNhap.isEmpty() || matKhau.isEmpty()) {
-            lblThongBao.setText("Vui lòng nhập đầy đủ thông tin!");
+        String validationError = validateInputDangNhap(tenDangNhap, matKhau);
+        if (validationError != null) {
+            lblThongBao.setText(validationError);
             lblThongBao.setStyle("-fx-text-fill: red;");
             return;
         }
+
 
         try {
             // Kiểm tra đăng nhập (có thể ném TaiKhoanBiKhoaException nếu bị khóa)
@@ -166,6 +168,15 @@ public class LoginController {
             lblThongBao.setStyle("-fx-text-fill: red;");
             e.printStackTrace();
         }
+    }
+
+    public static String validateInputDangNhap(String tenDangNhap, String matKhau) {
+        if (tenDangNhap == null || tenDangNhap.trim().isEmpty()
+                || matKhau == null || matKhau.isEmpty()) {
+            return "Vui lòng nhập đầy đủ thông tin!";
+        }
+
+        return null;
     }
 
     private void handleDangKy() {

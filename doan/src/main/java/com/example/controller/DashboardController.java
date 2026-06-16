@@ -713,8 +713,9 @@ public class DashboardController {
     /** Đổi danh mục của giao dịch đang chọn, có cảnh báo ngân sách khi đổi loại chi */
     private void handleDoiDanhMuc() {
         GiaoDichInfo selected = tableGiaoDich.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            new Alert(Alert.AlertType.WARNING, "Vui lòng chọn giao dịch cần đổi danh mục!", ButtonType.OK).showAndWait();
+        String validationError = validateInputDoiDanhMuc(selected);
+        if (validationError != null) {
+            new Alert(Alert.AlertType.WARNING, validationError, ButtonType.OK).showAndWait();
             return;
         }
 
@@ -836,24 +837,14 @@ public class DashboardController {
             String moi = txtMoi.getText();
             String xn = txtXacNhan.getText();
 
-            if (cu.isEmpty() || moi.isEmpty() || xn.isEmpty()) {
-                lblKetQua.setText("Vui lòng điền đầy đủ thông tin!");
-                lblKetQua.setStyle("-fx-text-fill: red;");
-                ev.consume(); // chặn đóng
-                return;
-            }
-            if (moi.length() < 6) {
-                lblKetQua.setText("Mật khẩu mới phải ít nhất 6 ký tự!");
+            String validationError = validateInputDoiMatKhau(cu, moi, xn);
+            if (validationError != null) {
+                lblKetQua.setText(validationError);
                 lblKetQua.setStyle("-fx-text-fill: red;");
                 ev.consume();
                 return;
             }
-            if (!moi.equals(xn)) {
-                lblKetQua.setText("Mật khẩu xác nhận không khớp!");
-                lblKetQua.setStyle("-fx-text-fill: red;");
-                ev.consume();
-                return;
-            }
+
             try {
                 if (nguoiDungDAO.laMatKhauTrungHienTai(LoginController.currentUser.getMaNguoiDung(), moi)) {
                     lblKetQua.setText("Mật khẩu mới trùng với mật khẩu hiện tại!");
@@ -896,6 +887,34 @@ public class DashboardController {
 
     // Helper kiểm tra vượt ngân sách — nhận thang/nam từ ngoài vì có thể là tháng của giao dịch cũ
     // Trả về true = tiếp tục, false = hủy
+    public static String validateInputDoiMatKhau(String matKhauCu,
+                                                 String matKhauMoi,
+                                                 String xacNhanMatKhau) {
+        if (matKhauCu == null || matKhauCu.isEmpty()
+                || matKhauMoi == null || matKhauMoi.isEmpty()
+                || xacNhanMatKhau == null || xacNhanMatKhau.isEmpty()) {
+            return "Vui lòng điền đầy đủ thông tin!";
+        }
+
+        if (matKhauMoi.length() < 6) {
+            return "Mật khẩu mới phải ít nhất 6 ký tự!";
+        }
+
+        if (!matKhauMoi.equals(xacNhanMatKhau)) {
+            return "Mật khẩu xác nhận không khớp!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputDoiDanhMuc(GiaoDichInfo selected) {
+        if (selected == null) {
+            return "Vui lòng chọn giao dịch cần đổi danh mục!";
+        }
+
+        return null;
+    }
+
     private boolean xacNhanNeuVuotNganSach(String soTaiKhoan, DanhMuc danhMuc, BigDecimal soTien, int thang, int nam) {
         BigDecimal gioiHan = nganSachDAO.layGioiHanNganSach(soTaiKhoan, danhMuc.getId(), thang, nam);
         if (gioiHan == null) return true; // Không đặt ngân sách → cho phép tiếp tục

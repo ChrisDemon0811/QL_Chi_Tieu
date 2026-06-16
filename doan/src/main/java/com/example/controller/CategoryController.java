@@ -221,7 +221,8 @@ public class CategoryController {
         dialog.setResultConverter(btn -> {
             if (btn == btnOK) {
                 String ten = txtTen.getText().trim();
-                if (ten.isEmpty()) { showAlert("Lỗi", "Vui lòng nhập tên danh mục!"); return null; }
+                String inputError = validateInputDanhMuc(ten);
+                if (inputError != null) { showAlert("Lỗi", inputError); return null; }
                 Integer parentId = cbCha.getValue() != null ? cbCha.getValue().getId() : null;
                 return new DanhMuc(ten, txtMoTa.getText().trim(), loai, soTaiKhoan, parentId);
             }
@@ -252,8 +253,8 @@ public class CategoryController {
 
     private void handleSua(TableView<DanhMuc> tbl) {
         DanhMuc selected = tbl.getSelectionModel().getSelectedItem();
-        if (selected == null) { showAlert("Lỗi", "Vui lòng chọn danh mục!"); return; }
-        if (selected.isDanhMucMacDinh()) { showAlert("Lỗi", "Không thể sửa danh mục mặc định!"); return; }
+        String validationError = validateInputChonDanhMuc(selected, "sua");
+        if (validationError != null) { showAlert("Lỗi", validationError); return; }
         final String tenCu = selected.getTenDanhMuc() != null ? selected.getTenDanhMuc().trim() : "";
         final Integer parentCu = selected.getParentId();
 
@@ -293,7 +294,8 @@ public class CategoryController {
         dialog.setResultConverter(btn -> {
             if (btn == btnOK) {
                 String ten = txtTen.getText().trim();
-                if (ten.isEmpty()) { showAlert("Lỗi", "Vui lòng nhập tên!"); return null; }
+                String inputError = validateInputDanhMuc(ten);
+                if (inputError != null) { showAlert("Lỗi", inputError); return null; }
                 Integer parentId = cbCha.getValue() != null ? cbCha.getValue().getId() : null;
                 return new DanhMuc(
                     selected.getId(),
@@ -340,8 +342,8 @@ public class CategoryController {
 
     private void handleXoa(TableView<DanhMuc> tbl) {
         DanhMuc selected = tbl.getSelectionModel().getSelectedItem();
-        if (selected == null) { showAlert("Lỗi", "Vui lòng chọn danh mục!"); return; }
-        if (selected.isDanhMucMacDinh()) { showAlert("Lỗi", "Không thể xóa danh mục mặc định!"); return; }
+        String validationError = validateInputChonDanhMuc(selected, "xoa");
+        if (validationError != null) { showAlert("Lỗi", validationError); return; }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
                 "Xóa danh mục: " + selected.getTenDanhMuc() +
@@ -358,6 +360,29 @@ public class CategoryController {
                 }
             }
         });
+    }
+
+    public static String validateInputDanhMuc(String tenDanhMuc) {
+        if (tenDanhMuc == null || tenDanhMuc.trim().isEmpty()) {
+            return "Vui lòng nhập tên danh mục!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputChonDanhMuc(DanhMuc selected, String hanhDong) {
+        if (selected == null) {
+            return "Vui lòng chọn danh mục!";
+        }
+
+        if (selected.isDanhMucMacDinh()) {
+            if ("xoa".equals(hanhDong)) {
+                return "Không thể xóa danh mục mặc định!";
+            }
+            return "Không thể sửa danh mục mặc định!";
+        }
+
+        return null;
     }
 
     private void showAlert(String title, String content) {

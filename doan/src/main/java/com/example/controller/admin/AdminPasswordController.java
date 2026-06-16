@@ -73,21 +73,13 @@ public class AdminPasswordController {
             String moi = txtMoi.getText();
             String xacNhan = txtXacNhan.getText();
 
-            if (cu.isEmpty() || moi.isEmpty() || xacNhan.isEmpty()) {
-                lblKetQua.setText("Vui lòng điền đầy đủ thông tin!");
+            String validationError = validateInputDoiMatKhau(cu, moi, xacNhan);
+            if (validationError != null) {
+                lblKetQua.setText(validationError);
                 lblKetQua.setStyle("-fx-text-fill: red;");
                 return;
             }
-            if (moi.length() < 6) {
-                lblKetQua.setText("Mật khẩu mới phải có ít nhất 6 ký tự!");
-                lblKetQua.setStyle("-fx-text-fill: red;");
-                return;
-            }
-            if (!moi.equals(xacNhan)) {
-                lblKetQua.setText("Mật khẩu xác nhận không khớp!");
-                lblKetQua.setStyle("-fx-text-fill: red;");
-                return;
-            }
+
 
             try {
                 if (nguoiDungDAO.laMatKhauTrungHienTai(LoginController.currentUser.getMaNguoiDung(), moi)) {
@@ -190,26 +182,13 @@ public class AdminPasswordController {
             String mkMoi = txtMatKhauMoiUser.getText();
             String mkXn = txtXacNhanUser.getText();
 
-            if (nd == null) {
-                lblKetQuaReset.setText("Vui lòng nhập STK user hợp lệ!");
+            String validationError = validateInputDatLaiMatKhau(nd, mkMoi, mkXn);
+            if (validationError != null) {
+                lblKetQuaReset.setText(validationError);
                 lblKetQuaReset.setStyle("-fx-text-fill: red;");
                 return;
             }
-            if (mkMoi == null || mkMoi.isBlank() || mkXn == null || mkXn.isBlank()) {
-                lblKetQuaReset.setText("Vui lòng nhập đầy đủ mật khẩu mới và xác nhận!");
-                lblKetQuaReset.setStyle("-fx-text-fill: red;");
-                return;
-            }
-            if (mkMoi.length() < 6) {
-                lblKetQuaReset.setText("Mật khẩu mới phải có ít nhất 6 ký tự!");
-                lblKetQuaReset.setStyle("-fx-text-fill: red;");
-                return;
-            }
-            if (!mkMoi.equals(mkXn)) {
-                lblKetQuaReset.setText("Mật khẩu xác nhận không khớp!");
-                lblKetQuaReset.setStyle("-fx-text-fill: red;");
-                return;
-            }
+
 
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
             confirm.setTitle("Xác nhận đặt lại mật khẩu");
@@ -254,5 +233,48 @@ public class AdminPasswordController {
 
         outer.getChildren().addAll(title, grid, separator, titleReset, gridReset);
         panel = outer;
+    }
+
+    public static String validateInputDoiMatKhau(String matKhauCu,
+                                                 String matKhauMoi,
+                                                 String xacNhanMatKhau) {
+        if (matKhauCu == null || matKhauCu.isEmpty()
+                || matKhauMoi == null || matKhauMoi.isEmpty()
+                || xacNhanMatKhau == null || xacNhanMatKhau.isEmpty()) {
+            return "Vui lòng điền đầy đủ thông tin!";
+        }
+
+        if (matKhauMoi.length() < 6) {
+            return "Mật khẩu mới phải có ít nhất 6 ký tự!";
+        }
+
+        if (!matKhauMoi.equals(xacNhanMatKhau)) {
+            return "Mật khẩu xác nhận không khớp!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputDatLaiMatKhau(NguoiDung nguoiDung,
+                                                    String matKhauMoi,
+                                                    String xacNhanMatKhau) {
+        if (nguoiDung == null) {
+            return "Vui lòng nhập STK user hợp lệ!";
+        }
+
+        if (matKhauMoi == null || matKhauMoi.isBlank()
+                || xacNhanMatKhau == null || xacNhanMatKhau.isBlank()) {
+            return "Vui lòng nhập đầy đủ mật khẩu mới và xác nhận!";
+        }
+
+        if (matKhauMoi.length() < 6) {
+            return "Mật khẩu mới phải có ít nhất 6 ký tự!";
+        }
+
+        if (!matKhauMoi.equals(xacNhanMatKhau)) {
+            return "Mật khẩu xác nhận không khớp!";
+        }
+
+        return null;
     }
 }

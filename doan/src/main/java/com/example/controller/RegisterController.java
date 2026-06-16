@@ -138,26 +138,12 @@ public class RegisterController {
         String matKhau = txtMatKhau.getText();
         String xacNhanMatKhau = txtXacNhanMatKhau.getText();
 
-        // Kiểm tra validation
-        if (tenDangNhap.isEmpty() || email.isEmpty() || hoTen.isEmpty() || 
-            matKhau.isEmpty() || xacNhanMatKhau.isEmpty()) {
-            lblThongBao.setText("Vui lòng nhập đầy đủ thông tin!");
+        String validationError = validateInputDangKy(hoTen, tenDangNhap, email, matKhau, xacNhanMatKhau);
+        if (validationError != null) {
+            lblThongBao.setText(validationError);
             lblThongBao.setStyle("-fx-text-fill: red;");
             return;
         }
-
-        if (!matKhau.equals(xacNhanMatKhau)) {
-            lblThongBao.setText("Mật khẩu xác nhận không khớp!");
-            lblThongBao.setStyle("-fx-text-fill: red;");
-            return;
-        }
-
-        if (matKhau.length() < 6) {
-            lblThongBao.setText("Mật khẩu phải có ít nhất 6 ký tự!");
-            lblThongBao.setStyle("-fx-text-fill: red;");
-            return;
-        }
-
         try {
             if (nguoiDungDAO.tonTaiTenDangNhap(tenDangNhap)) {
                 lblThongBao.setText("Tên đăng nhập đã tồn tại!");
@@ -202,6 +188,30 @@ public class RegisterController {
             }
             lblThongBao.setStyle("-fx-text-fill: red;");
         }
+    }
+
+    public static String validateInputDangKy(String hoTen,
+                                             String tenDangNhap,
+                                             String email,
+                                             String matKhau,
+                                             String xacNhanMatKhau) {
+        if (tenDangNhap == null || tenDangNhap.trim().isEmpty()
+                || email == null || email.trim().isEmpty()
+                || hoTen == null || hoTen.trim().isEmpty()
+                || matKhau == null || matKhau.isEmpty()
+                || xacNhanMatKhau == null || xacNhanMatKhau.isEmpty()) {
+            return "Vui lòng nhập đầy đủ thông tin!";
+        }
+
+        if (matKhau.length() < 6) {
+            return "Mật khẩu phải có ít nhất 6 ký tự!";
+        }
+
+        if (!matKhau.equals(xacNhanMatKhau)) {
+            return "Mật khẩu xác nhận không khớp!";
+        }
+
+        return null;
     }
 
     private void handleQuayLai() {

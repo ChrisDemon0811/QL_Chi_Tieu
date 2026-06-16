@@ -216,16 +216,9 @@ public class AdminAccountController {
 
     private void handleKhoaTaiKhoan() {
         NguoiDung selected = tableTaiKhoan.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Lỗi", "Vui lòng chọn tài khoản cần khóa!");
-            return;
-        }
-        if ("quan_ly".equals(selected.getVaiTro())) {
-            showAlert("Lỗi", "Không thể khóa tài khoản Admin!");
-            return;
-        }
-        if ("bi_khoa".equals(selected.getTrangThai())) {
-            showAlert("Thông báo", "Tài khoản này đã bị khóa!");
+        String validationError = validateInputKhoaTaiKhoan(selected);
+        if (validationError != null) {
+            showAlert("Lỗi", validationError);
             return;
         }
 
@@ -308,12 +301,9 @@ public class AdminAccountController {
 
     private void handleMoKhoaTaiKhoan() {
         NguoiDung selected = tableTaiKhoan.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Lỗi", "Vui lòng chọn tài khoản cần mở khóa!");
-            return;
-        }
-        if ("hoat_dong".equals(selected.getTrangThai())) {
-            showAlert("Thông báo", "Tài khoản này đang hoạt động bình thường!");
+        String validationError = validateInputMoKhoaTaiKhoan(selected);
+        if (validationError != null) {
+            showAlert("Lỗi", validationError);
             return;
         }
 
@@ -413,27 +403,15 @@ public class AdminAccountController {
         dialog.setResultConverter(btn -> {
             if (btn == btnNapType) {
                 try {
-                    if (userDaXacNhan[0] == null) {
-                        showAlert("Lỗi", "Vui lòng nhập STK hợp lệ trước khi nạp tiền!");
-                        return null;
-                    }
                     String raw = txtSoTien.getText() != null ? txtSoTien.getText().trim() : "";
-                    if (raw.isEmpty()) {
-                        showAlert("Lỗi", "Vui lòng nhập số tiền cần nạp!");
+                    String validationError = validateInputNapTien(userDaXacNhan[0], raw);
+                    if (validationError != null) {
+                        showAlert("Lỗi", validationError);
                         return null;
                     }
 
                     BigDecimal soTienNap = MoneyInputUtil.parseMoney(raw);
-                    if (soTienNap == null) throw new NumberFormatException();
-                    if (soTienNap.compareTo(BigDecimal.ZERO) <= 0) {
-                        showAlert("Lỗi", "Số tiền nạp phải lớn hơn 0!");
-                        return null;
-                    }
 
-                    if (soTienNap.compareTo(new BigDecimal("999999999999")) > 0) {
-                        showAlert("Lỗi", "Số tiền nạp quá lớn!");
-                        return null;
-                    }
                     return soTienNap;
                 } catch (NumberFormatException ex) {
                     showAlert("Lỗi", "Số tiền không hợp lệ!");
@@ -446,13 +424,15 @@ public class AdminAccountController {
         dialog.showAndWait().ifPresent(soTienNap -> {
             try {
                 NguoiDung target = userDaXacNhan[0];
-                if (target == null) {
-                    showAlert("Lỗi", "Không xác định được user nhận tiền!");
+                String validationError = validateInputNguoiNhanNapTien(target);
+                if (validationError != null) {
+                    showAlert("Lỗi", validationError);
                     return;
                 }
                 String soTaiKhoanAdmin = LoginController.currentUser != null ? LoginController.currentUser.getSoTaiKhoan() : null;
-                if (soTaiKhoanAdmin == null || soTaiKhoanAdmin.isBlank()) {
-                    showAlert("Lỗi", "Không xác định được tài khoản Admin để ghi lịch sử giao dịch!");
+                validationError = validateInputTaiKhoanAdmin(soTaiKhoanAdmin);
+                if (validationError != null) {
+                    showAlert("Lỗi", validationError);
                     return;
                 }
 
@@ -477,8 +457,9 @@ public class AdminAccountController {
 
     private void handleXemThongTinTaiKhoan() {
         NguoiDung selected = tableTaiKhoan.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Lỗi", "Vui lòng chọn user cần xem thông tin!");
+        String validationError = validateInputXemThongTinTaiKhoan(selected);
+        if (validationError != null) {
+            showAlert("Lỗi", validationError);
             return;
         }
 
@@ -545,6 +526,85 @@ public class AdminAccountController {
         } catch (Exception ex) {
             showAlert("Lỗi", "Không thể tải thông tin user: " + ex.getMessage());
         }
+    }
+
+    public static String validateInputKhoaTaiKhoan(NguoiDung selected) {
+        if (selected == null) {
+            return "Vui lòng chọn tài khoản cần khóa!";
+        }
+
+        if ("quan_ly".equals(selected.getVaiTro())) {
+            return "Không thể khóa tài khoản Admin!";
+        }
+
+        if ("bi_khoa".equals(selected.getTrangThai())) {
+            return "Tài khoản này đã bị khóa!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputMoKhoaTaiKhoan(NguoiDung selected) {
+        if (selected == null) {
+            return "Vui lòng chọn tài khoản cần mở khóa!";
+        }
+
+        if ("hoat_dong".equals(selected.getTrangThai())) {
+            return "Tài khoản này đang hoạt động bình thường!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputNapTien(NguoiDung target, String soTienStr) {
+        if (target == null) {
+            return "Vui lòng nhập STK hợp lệ trước khi nạp tiền!";
+        }
+
+        if (soTienStr == null || soTienStr.trim().isEmpty()) {
+            return "Vui lòng nhập số tiền cần nạp!";
+        }
+
+        try {
+            BigDecimal soTienNap = MoneyInputUtil.parseMoney(soTienStr);
+            if (soTienNap == null) {
+                return "Số tiền không hợp lệ!";
+            }
+            if (soTienNap.compareTo(BigDecimal.ZERO) <= 0) {
+                return "Số tiền nạp phải lớn hơn 0!";
+            }
+            if (soTienNap.compareTo(new BigDecimal("999999999999")) > 0) {
+                return "Số tiền nạp quá lớn!";
+            }
+        } catch (NumberFormatException e) {
+            return "Số tiền không hợp lệ!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputNguoiNhanNapTien(NguoiDung target) {
+        if (target == null) {
+            return "Không xác định được user nhận tiền!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputTaiKhoanAdmin(String soTaiKhoanAdmin) {
+        if (soTaiKhoanAdmin == null || soTaiKhoanAdmin.isBlank()) {
+            return "Không xác định được tài khoản Admin để ghi lịch sử giao dịch!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputXemThongTinTaiKhoan(NguoiDung selected) {
+        if (selected == null) {
+            return "Vui lòng chọn user cần xem thông tin!";
+        }
+
+        return null;
     }
 
     private String safeText(String value) {

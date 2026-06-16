@@ -383,43 +383,26 @@ public class TransactionController {
 
     private void handleChuyenTien() {
         try {
-            // Validate input
-            String soTaiKhoanNhan = txtSoTaiKhoanNhan.getText().trim();
-            String soTienStr = txtSoTien.getText().trim();
-            String noiDung = txtNoiDung.getText().trim();
-            
-            if (soTaiKhoanNhan.isEmpty()) {
-                showError("Vui lòng nhập số tài khoản người nhận!");
-                return;
-            }
-            
-            if (soTienStr.isEmpty()) {
-                showError("Vui lòng nhập số tiền!");
-                return;
-            }
-            
-            BigDecimal soTien;
-            try {
-                soTien = MoneyInputUtil.parseMoney(soTienStr);
-                if (soTien == null) throw new NumberFormatException();
-                if (soTien.compareTo(BigDecimal.ZERO) <= 0) {
-                    showError("Số tiền phải lớn hơn 0!");
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                showError("Số tiền không hợp lệ!");
-                return;
-            }
-            
-            // Kiểm tra không tự chuyển cho chính mình
+            String soTaiKhoanNhan = txtSoTaiKhoanNhan.getText();
+            String soTienStr = txtSoTien.getText();
+            String noiDung = txtNoiDung.getText() != null ? txtNoiDung.getText().trim() : "";
             String soTaiKhoanGui = LoginController.currentUser.getSoTaiKhoan();
-            if (soTaiKhoanGui.equals(soTaiKhoanNhan)) {
-                showError("Không thể chuyển tiền cho chính mình!");
+
+            String validationError = validateInputChuyenTien(
+                    soTaiKhoanNhan,
+                    soTienStr,
+                    soTaiKhoanGui
+            );
+            if (validationError != null) {
+                showError(validationError);
                 return;
             }
+
+            BigDecimal soTien = MoneyInputUtil.parseMoney(soTienStr);
+            String soTaiKhoanNhanHopLe = soTaiKhoanNhan.trim();
             
             // Kiểm tra tài khoản người nhận có tồn tại
-            String tenNguoiNhan = giaoDichDAO.layTenNguoiDungThuong(soTaiKhoanNhan);
+            String tenNguoiNhan = giaoDichDAO.layTenNguoiDungThuong(soTaiKhoanNhanHopLe);
             if (tenNguoiNhan == null) {
                 showError("Số tài khoản người nhận không hợp lệ hoặc không tồn tại!");
                 return;
@@ -437,14 +420,14 @@ public class TransactionController {
             confirmAlert.setTitle("Xác nhận chuyển tiền");
             confirmAlert.setHeaderText("Bạn có chắc chắn muốn chuyển tiền?");
             confirmAlert.setContentText(
-                "Người nhận: " + tenNguoiNhan + " (" + soTaiKhoanNhan + ")\n" +
+                "Người nhận: " + tenNguoiNhan + " (" + soTaiKhoanNhanHopLe + ")\n" +
                 "Số tiền: " + df.format(soTien) + " đ\n" +
                 "Nội dung: " + (noiDung.isEmpty() ? "(Không có)" : noiDung)
             );
             
             if (confirmAlert.showAndWait().get() == ButtonType.OK) {
                 // Thực hiện chuyển tiền
-                boolean success = giaoDichDAO.chuyenTien(soTaiKhoanGui, soTaiKhoanNhan, soTien, noiDung, danhMucId);
+                boolean success = giaoDichDAO.chuyenTien(soTaiKhoanGui, soTaiKhoanNhanHopLe, soTien, noiDung, danhMucId);
                 
                 if (success) {
                     showSuccess("Chuyển tiền thành công!");
@@ -529,24 +512,15 @@ public class TransactionController {
             try {
                 String loai = "Chi tiền mặt".equals(cbLoai.getValue()) ? "chi" : "thu";
 
-                String soTienStr = txtSoTienTienMat.getText() != null ? txtSoTienTienMat.getText().trim() : "";
-                if (soTienStr.isEmpty()) {
-                    showError("Vui lòng nhập số tiền!");
+                String soTienStr = txtSoTienTienMat.getText();
+                DanhMuc danhMuc = cbDanhMucTienMat.getValue();
+                String validationError = validateInputTienMat(loai, soTienStr, danhMuc);
+                if (validationError != null) {
+                    showError(validationError);
                     return;
                 }
 
                 BigDecimal soTien = MoneyInputUtil.parseMoney(soTienStr);
-                if (soTien == null || soTien.compareTo(BigDecimal.ZERO) <= 0) {
-                    showError("Số tiền không hợp lệ!");
-                    return;
-                }
-
-                DanhMuc danhMuc = cbDanhMucTienMat.getValue();
-                if (danhMuc == null) {
-                    showError("Vui lòng chọn danh mục!");
-                    return;
-                }
-
                 String soTaiKhoan = LoginController.currentUser.getSoTaiKhoan();
                 Integer danhMucId = danhMuc.getId();
 
@@ -569,6 +543,78 @@ public class TransactionController {
 
     // Helper dùng chung: kiểm tra vượt ngân sách và hỏi user có tiếp tục không
     // Trả về true = tiếp tục, false = hủy
+    public static String validateInputChuyenTien(String soTaiKhoanNhan,
+                                                String soTienStr,
+                                                String soTaiKhoanGui) {
+        if (soTaiKhoanNhan == null || soTaiKhoanNhan.trim().isEmpty()) {
+            return "Vui lòng nhập số tài khoản người nhận!";
+        }
+
+        if (!soTaiKhoanNhan.trim().matches("\\d+")) {
+            return "Sá»‘ tÃ i khoáº£n ngÆ°á»i nháº­n khÃ´ng há»£p lá»‡!";
+        }
+
+        if (soTienStr == null || soTienStr.trim().isEmpty()) {
+            return "Vui lòng nhập số tiền!";
+        }
+
+
+        if (!soTienStr.trim().matches("[0-9.]+")) {
+            return "Số tiền không hợp lệ!";
+        }
+
+        try {
+            BigDecimal soTien = MoneyInputUtil.parseMoney(soTienStr);
+            if (soTien == null) {
+                return "Số tiền không hợp lệ!";
+            }
+            if (soTien.compareTo(BigDecimal.ZERO) <= 0) {
+                return "Số tiền phải lớn hơn 0!";
+            }
+        } catch (NumberFormatException e) {
+            return "Số tiền không hợp lệ!";
+        }
+
+        if (soTaiKhoanGui == null || soTaiKhoanGui.trim().isEmpty()) {
+            return "KhÃ´ng xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c tÃ i khoáº£n ngÆ°á»i gá»­i!";
+        }
+
+        if (soTaiKhoanGui.equals(soTaiKhoanNhan.trim())) {
+            return "Không thể chuyển tiền cho chính mình!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputTienMat(String soTienStr, DanhMuc danhMuc) {
+        return validateInputTienMat(null, soTienStr, danhMuc);
+    }
+
+    public static String validateInputTienMat(String loai, String soTienStr, DanhMuc danhMuc) {
+        if (loai != null && !"chi".equals(loai) && !"thu".equals(loai)) {
+            return "Loại giao dịch không hợp lệ!";
+        }
+
+        if (soTienStr == null || soTienStr.trim().isEmpty()) {
+            return "Vui lòng nhập số tiền!";
+        }
+
+        try {
+            BigDecimal soTien = MoneyInputUtil.parseMoney(soTienStr);
+            if (soTien == null || soTien.compareTo(BigDecimal.ZERO) <= 0) {
+                return "Số tiền không hợp lệ!";
+            }
+        } catch (NumberFormatException e) {
+            return "Số tiền không hợp lệ!";
+        }
+
+        if (danhMuc == null) {
+            return "Vui lòng chọn danh mục!";
+        }
+
+        return null;
+    }
+
     private boolean xacNhanNeuVuotNganSach(String soTaiKhoan, DanhMuc danhMuc, BigDecimal soTien) {
         if (danhMuc == null) return true;
 

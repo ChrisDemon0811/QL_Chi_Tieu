@@ -175,8 +175,9 @@ public class AdminExpenseCategoryController {
         dialog.setResultConverter(btn -> {
             if (btn == btnOK) {
                 String ten = txtTen.getText().trim();
-                if (ten.isEmpty()) {
-                    showAlert("Lỗi", "Vui lòng nhập tên danh mục!");
+                String validationError = validateInputDanhMuc(ten);
+                if (validationError != null) {
+                    showAlert("Lỗi", validationError);
                     return null;
                 }
                 Integer parentId = cbCha.getValue() != null ? cbCha.getValue().getId() : null;
@@ -209,8 +210,9 @@ public class AdminExpenseCategoryController {
 
     private void handleSuaDanhMuc() {
         DanhMuc selected = tableDanhMuc.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Lỗi", "Vui lòng chọn danh mục cần sửa!");
+        String validationError = validateInputChonDanhMuc(selected, "sua");
+        if (validationError != null) {
+            showAlert("Lỗi", validationError);
             return;
         }
         final String tenCu = selected.getTenDanhMuc() != null ? selected.getTenDanhMuc().trim() : "";
@@ -260,10 +262,8 @@ public class AdminExpenseCategoryController {
         dialog.setResultConverter(btn -> {
             if (btn == btnOK) {
                 String ten = txtTen.getText().trim();
-                if (ten.isEmpty()) {
-                    showAlert("Lỗi", "Vui lòng nhập tên danh mục!");
-                    return null;
-                }
+                String inputError = validateInputDanhMuc(ten);
+                if (inputError != null) { showAlert("Lỗi", inputError); return null; }
                 return new DanhMuc(
                         selected.getId(),
                         ten,
@@ -307,8 +307,9 @@ public class AdminExpenseCategoryController {
 
     private void handleXoaDanhMuc() {
         DanhMuc selected = tableDanhMuc.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Lỗi", "Vui lòng chọn danh mục cần xóa!");
+        String validationError = validateInputChonDanhMuc(selected, "xoa");
+        if (validationError != null) {
+            showAlert("Lỗi", validationError);
             return;
         }
 
@@ -327,6 +328,25 @@ public class AdminExpenseCategoryController {
                 }
             }
         });
+    }
+
+    public static String validateInputDanhMuc(String tenDanhMuc) {
+        if (tenDanhMuc == null || tenDanhMuc.trim().isEmpty()) {
+            return "Vui lòng nhập tên danh mục!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputChonDanhMuc(DanhMuc selected, String hanhDong) {
+        if (selected == null) {
+            if ("xoa".equals(hanhDong)) {
+                return "Vui lòng chọn danh mục cần xóa!";
+            }
+            return "Vui lòng chọn danh mục cần sửa!";
+        }
+
+        return null;
     }
 
     private List<DanhMuc> layDanhMucChaMacDinh(String loai, Integer excludeId) {

@@ -297,31 +297,14 @@ public class BudgetController {
                     String gioiHanStr = txtGioiHan.getText().trim();
                     Integer thang = cbThangMoi.getValue();
                     Integer nam = cbNamMoi.getValue();
-                    
-                    if (dm == null || gioiHanStr.isEmpty() || thang == null || nam == null) {
-                        showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
+
+                    String validationError = validateInputThemNganSach(dm, gioiHanStr, thang, nam);
+                    if (validationError != null) {
+                        showAlert("Lỗi", validationError);
                         return null;
                     }
-                    
                     BigDecimal gioiHanBD = MoneyInputUtil.parseMoney(gioiHanStr);
-                    if (gioiHanBD == null) {
-                        showAlert("Lỗi", "Số tiền không hợp lệ! Vui lòng nhập số.");
-                        return null;
-                    }
-                    double gioiHan = gioiHanBD.doubleValue();
-                    
-                    // Kiểm tra giá trị hợp lệ
-                    if (gioiHan <= 0) {
-                        showAlert("Lỗi", "Giới hạn phải lớn hơn 0!");
-                        return null;
-                    }
-                    
-                    if (gioiHan > 9999999999.0) {
-                        showAlert("Lỗi", "Giới hạn quá lớn! Vui lòng nhập số tiền nhỏ hơn 10 tỷ.");
-                        return null;
-                    }
-                    
-                    // Kiểm tra trùng lặp
+
                     if (nganSachDAO.kiemTraTonTai(soTaiKhoan, dm.getId(), thang, nam)) {
                         showAlert("Lỗi", "Ngân sách cho danh mục \"" + dm.getTenDanhMuc() + 
                                  "\" tháng " + thang + "/" + nam + " đã tồn tại!\n" +
@@ -356,8 +339,9 @@ public class BudgetController {
     
     private void handleSua() {
         NganSach selected = table.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Lỗi", "Vui lòng chọn ngân sách cần sửa!");
+        String validationError = validateInputChonNganSach(selected, "sua");
+        if (validationError != null) {
+            showAlert("Lỗi", validationError);
             return;
         }
         
@@ -372,23 +356,14 @@ public class BudgetController {
         
         dialog.showAndWait().ifPresent(gioiHanStr -> {
             try {
+                String inputError = validateInputSuaNganSach(gioiHanStr);
+                if (inputError != null) {
+                    showAlert("Lỗi", inputError);
+                    return;
+                }
+
                 BigDecimal gioiHanBD = MoneyInputUtil.parseMoney(gioiHanStr.trim());
-                if (gioiHanBD == null) {
-                    showAlert("Lỗi", "Số tiền không hợp lệ! Vui lòng nhập số.");
-                    return;
-                }
-                double gioiHan = gioiHanBD.doubleValue();
-                
-                if (gioiHan <= 0) {
-                    showAlert("Lỗi", "Giới hạn phải lớn hơn 0!");
-                    return;
-                }
-                
-                if (gioiHan > 9999999999.0) {
-                    showAlert("Lỗi", "Giới hạn quá lớn! Vui lòng nhập số tiền nhỏ hơn 10 tỷ.");
-                    return;
-                }
-                
+
                 selected.setGioiHan(gioiHanBD);
                 if (nganSachDAO.suaNganSach(selected)) {
                     showAlert("Thành công", "Sửa ngân sách thành công!");
@@ -402,10 +377,61 @@ public class BudgetController {
         });
     }
     
+    public static String validateInputThemNganSach(DanhMuc danhMuc,
+                                                   String gioiHanStr,
+                                                   Integer thang,
+                                                   Integer nam) {
+        if (danhMuc == null || gioiHanStr == null || gioiHanStr.trim().isEmpty()
+                || thang == null || nam == null) {
+            return "Vui lòng điền đầy đủ thông tin!";
+        }
+
+        if (thang < 1 || thang > 12) {
+            return "Tháng không hợp lệ!";
+        }
+
+        return validateInputSuaNganSach(gioiHanStr);
+    }
+
+    public static String validateInputSuaNganSach(String gioiHanStr) {
+        if (gioiHanStr == null || gioiHanStr.trim().isEmpty()) {
+            return "Vui lòng nhập giới hạn ngân sách!";
+        }
+
+        try {
+            BigDecimal gioiHan = MoneyInputUtil.parseMoney(gioiHanStr);
+            if (gioiHan == null) {
+                return "Số tiền không hợp lệ! Vui lòng nhập số.";
+            }
+            if (gioiHan.compareTo(BigDecimal.ZERO) <= 0) {
+                return "Giới hạn phải lớn hơn 0!";
+            }
+            if (gioiHan.compareTo(new BigDecimal("9999999999")) > 0) {
+                return "Giới hạn quá lớn! Vui lòng nhập số tiền nhỏ hơn 10 tỷ.";
+            }
+        } catch (NumberFormatException e) {
+            return "Số tiền không hợp lệ! Vui lòng nhập số.";
+        }
+
+        return null;
+    }
+
+    public static String validateInputChonNganSach(NganSach selected, String hanhDong) {
+        if (selected == null) {
+            if ("xoa".equals(hanhDong)) {
+                return "Vui lòng chọn ngân sách cần xóa!";
+            }
+            return "Vui lòng chọn ngân sách cần sửa!";
+        }
+
+        return null;
+    }
+
     private void handleXoa() {
         NganSach selected = table.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Lỗi", "Vui lòng chọn ngân sách cần xóa!");
+        String validationError = validateInputChonNganSach(selected, "xoa");
+        if (validationError != null) {
+            showAlert("Lỗi", validationError);
             return;
         }
         
