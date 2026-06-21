@@ -713,22 +713,15 @@ public class DashboardController {
     /** Đổi danh mục của giao dịch đang chọn, có cảnh báo ngân sách khi đổi loại chi */
     private void handleDoiDanhMuc() {
         GiaoDichInfo selected = tableGiaoDich.getSelectionModel().getSelectedItem();
-        String validationError = validateInputDoiDanhMuc(selected);
-        if (validationError != null) {
-            new Alert(Alert.AlertType.WARNING, validationError, ButtonType.OK).showAndWait();
-            return;
-        }
-
-        boolean isChi = "Gửi".equals(selected.getLoai()) || "Chi TM".equals(selected.getLoai());
+        boolean isChi = selected != null && ("Gửi".equals(selected.getLoai()) || "Chi TM".equals(selected.getLoai()));
         String soTaiKhoan = LoginController.currentUser.getSoTaiKhoan();
         String loaiDM = isChi ? "chi" : "thu";
-        List<DanhMuc> dsDanhMuc = danhMucDAO.layDanhMucConTheoLoai(soTaiKhoan, loaiDM);
-
-        if (dsDanhMuc.isEmpty()) {
-            new Alert(Alert.AlertType.WARNING,
-                "Chưa có danh mục con loại " + (isChi ? "Chi" : "Thu") + ".\n" +
-                "Vui lòng tạo danh mục con trước khi đổi danh mục giao dịch.",
-                ButtonType.OK).showAndWait();
+        List<DanhMuc> dsDanhMuc = selected != null
+                ? danhMucDAO.layDanhMucConTheoLoai(soTaiKhoan, loaiDM)
+                : new ArrayList<>();
+        String validationError = validateInputDoiDanhMuc(selected, dsDanhMuc.isEmpty(), isChi ? "Chi" : "Thu");
+        if (validationError != null) {
+            new Alert(Alert.AlertType.WARNING, validationError, ButtonType.OK).showAndWait();
             return;
         }
 
@@ -917,6 +910,20 @@ public class DashboardController {
     public static String validateInputDoiDanhMuc(GiaoDichInfo selected) {
         if (selected == null) {
             return "Vui lòng chọn giao dịch cần đổi danh mục!";
+        }
+
+        return null;
+    }
+
+    public static String validateInputDoiDanhMuc(GiaoDichInfo selected,
+                                                 boolean khongCoDanhMucCon,
+                                                 String loaiDanhMucLabel) {
+        String err = validateInputDoiDanhMuc(selected);
+        if (err != null) return err;
+
+        if (khongCoDanhMucCon) {
+            return "Chưa có danh mục con loại " + loaiDanhMucLabel + ".\n"
+                    + "Vui lòng tạo danh mục con trước khi đổi danh mục giao dịch.";
         }
 
         return null;

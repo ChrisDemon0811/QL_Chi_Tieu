@@ -175,11 +175,6 @@ public class AdminExpenseCategoryController {
         dialog.setResultConverter(btn -> {
             if (btn == btnOK) {
                 String ten = txtTen.getText().trim();
-                String validationError = validateInputDanhMuc(ten);
-                if (validationError != null) {
-                    showAlert("Lỗi", validationError);
-                    return null;
-                }
                 Integer parentId = cbCha.getValue() != null ? cbCha.getValue().getId() : null;
                 return new DanhMuc(ten, txtMoTa.getText().trim(), "chi", null, parentId);
             }
@@ -260,8 +255,6 @@ public class AdminExpenseCategoryController {
         dialog.setResultConverter(btn -> {
             if (btn == btnOK) {
                 String ten = txtTen.getText().trim();
-                String inputError = validateInputDanhMuc(ten);
-                if (inputError != null) { showAlert("Lỗi", inputError); return null; }
                 return new DanhMuc(
                         selected.getId(),
                         ten,
